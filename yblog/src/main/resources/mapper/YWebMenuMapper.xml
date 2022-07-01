@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.yblog.webMenu.mapper.YWebMenuMapper">
+    
+    <resultMap type="YWebMenu" id="YWebMenuResult">
+        <result property="id"    column="id"    />
+        <result property="menuName"    column="menu_name"    />
+        <result property="moduleId"    column="module_id"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="remark"    column="remark"    />
+    </resultMap>
+
+    <sql id="selectYWebMenuVo">
+        select id, menu_name, module_id, create_by, create_time, update_by, update_time, remark from y_web_menu
+    </sql>
+
+    <select id="selectYWebMenuList" resultType="map">
+        SELECT
+            WM.id AS id ,
+            WM.menu_name AS menuName ,
+            WM.isShow AS isShow,
+            WM.sort AS sort,
+            COUNT( N.menu_id ) AS `count`
+        FROM
+            y_web_menu AS WM
+                LEFT JOIN ( SELECT menu_id FROM y_notes WHERE is_show = 1 ) AS N ON WM.id = N.menu_id
+        WHERE
+            WM.module_id = #{map.moduleId}
+        <if test="map.id != null and map.id != ''">AND WM.id = #{map.id}</if>
+        GROUP BY
+            WM.id
+        ORDER BY
+        IF
+            ( ISNULL( sort ), 1, 0 ),
+            WM.sort
+    </select>
+    
+    <select id="selectYWebMenuById" parameterType="Long" resultMap="YWebMenuResult">
+        <include refid="selectYWebMenuVo"/>
+        where id = #{id}
+    </select>
+        
+    <insert id="insertYWebMenu" parameterType="YWebMenu" useGeneratedKeys="true" keyProperty="id">
+        insert into y_web_menu
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="menuName != null and menuName != ''">menu_name,</if>
+            <if test="moduleId != null">module_id,</if>
+            <if test="isShow != null">isShow,</if>
+            <if test="sort != null">sort,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="remark != null">remark,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="menuName != null and menuName != ''">#{menuName},</if>
+            <if test="moduleId != null">#{moduleId},</if>
+            <if test="isShow != null">#{isShow},</if>
+            <if test="sort != null">#{sort},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="remark != null">#{remark},</if>
+        </trim>
+    </insert>
+
+    <update id="updateYWebMenu" parameterType="YWebMenu">
+        update y_web_menu
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="menuName != null and menuName != ''">menu_name = #{menuName},</if>
+            <if test="moduleId != null">module_id = #{moduleId},</if>
+            <if test="isShow != null">isShow = #{isShow},</if>
+            <if test="sort != null">sort = #{sort},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteYWebMenuById" parameterType="Long">
+        delete from y_web_menu where id = #{id}
+    </delete>
+
+    <select id="selectMenu" parameterType="Long" resultType="map">
+        SELECT id AS `value`,menu_name AS label FROM y_web_menu WHERE module_id = #{moduleId}
+    </select>
+
+</mapper>

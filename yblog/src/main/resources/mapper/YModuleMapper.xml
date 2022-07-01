@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.yblog.module.mapper.YModuleMapper">
+    
+    <resultMap type="YModule" id="YModuleResult">
+        <result property="id"    column="id"    />
+        <result property="name"    column="name"    />
+    </resultMap>
+
+    <sql id="selectYModuleVo">
+        select id, name from y_module
+    </sql>
+
+    <sql id="selectCountYModuleList">
+        SELECT
+            m.`name`,
+            m.id,
+            COUNT( wm.module_id ) AS `count`
+        FROM
+            y_module AS m
+                LEFT JOIN (
+                SELECT
+                    MENU.module_id ,N.is_show
+                FROM
+                    y_notes AS N
+                        LEFT JOIN y_web_menu AS MENU ON MENU.id = N.menu_id
+                WHERE
+                    N.is_show = 1
+            ) AS wm ON wm.module_id = m.id
+        GROUP BY
+            m.id
+    </sql>
+
+    <select id="selectYModuleList" parameterType="YModule" resultType="map">
+        <include refid="selectCountYModuleList"/>
+    </select>
+
+    <select id="selectModele" resultType="map">
+        SELECT
+            id AS `value`,
+            `name` AS label
+        FROM
+            y_module
+    </select>
+    
+    <select id="selectYModuleById" parameterType="Long" resultMap="YModuleResult">
+        <include refid="selectYModuleVo"/>
+        where id = #{id}
+    </select>
+
+</mapper>

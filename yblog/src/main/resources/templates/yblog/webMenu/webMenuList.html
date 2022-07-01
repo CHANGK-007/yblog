@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>菜单列表</title>
+    <link th:href="@{/plugins/elementUI/element.css}" rel="stylesheet"/>
+    <link th:href="@{/plugins/style.css}" rel="stylesheet"/>
+    <style>
+    </style>
+</head>
+<body>
+<div id="app" v-cloak>
+    <div class="appBox">
+        <div class="body">
+            <el-breadcrumb separator-class="el-icon-arrow-right">
+                <el-breadcrumb-item><a href="/yblog/module">首页模块</a></el-breadcrumb-item>
+                <el-breadcrumb-item>菜单管理</el-breadcrumb-item>
+            </el-breadcrumb>
+            <div class="btn-box">
+                <el-button type="success" plain size="small" @click="open()">添加</el-button>
+            </div>
+            <el-table :data="tableData" align="center" class="mt10 mt70" :header-cell-style="tableStyle">
+                <el-table-column type="index" :index="indexMethod" width="60" label="编号"></el-table-column>
+                <el-table-column prop="menuName" label="菜单名称" width="200px"></el-table-column>
+                <el-table-column prop="count" label="笔记数量" width="200px"></el-table-column>
+                <el-table-column prop="isShow" label="是否显示" width="200px">
+                    <template slot-scope="scope">
+                        <div :style="{'color':scope.row.isShow == 1 ? '' : 'red'}">
+                            {{scope.row.isShow === 1 ? '是' : '否'}}
+                        </div>
+                    </template>
+                </el-table-column>
+                <el-table-column label="操作">
+                    <template slot-scope="scope">
+                        <div class="handle-btn-box">
+                            <el-button type="info" size="mini" @click="goInfo(scope.row.id,scope.row.menuName)">详情
+                            </el-button>
+                            <el-button type="primary" size="mini" @click="open(scope.row.id)">修改</el-button>
+                            <el-button type="danger" size="mini" @click="del(scope.row.id)">删除</el-button>
+                        </div>
+                    </template>
+                </el-table-column>
+            </el-table>
+            <div style="height: 2px"></div>
+            <div class="pagination">
+                <el-pagination :current-page="paging.page" :page-size="paging.pageSize"
+                               layout="total, prev, pager, next, jumper" :total="paging.total"
+                               @current-change="paging.pageChange">
+                </el-pagination>
+            </div>
+        </div>
+    </div>
+    <el-dialog :title="dialogTag == 'edit' ? '编 辑' : '添 加'"
+               :visible.sync="dialogVisible" width="500px" @closed="handleClose">
+        <el-form ref="dialogForm" :model="dialogForm" :rules="rules" label-width="100px">
+            <el-form-item label="菜单名称：" prop="menuName">
+                <el-input v-model="dialogForm.menuName" clearable placeholder="请输入菜单名称"></el-input>
+            </el-form-item>
+            <el-form-item label="是否显示：" prop="isShow">
+                <el-switch
+                        v-model="dialogForm.isShow"
+                        active-color="#13ce66">
+                </el-switch>
+            </el-form-item>
+            <el-form-item label="显示排序：" prop="sort">
+                <el-input v-model="dialogForm.sort" type="number" clearable placeholder="请输入显示排序，数字越小越靠前"></el-input>
+            </el-form-item>
+        </el-form>
+        <span slot="footer" class="dialog-footer">
+            <el-button size="medium" @click="handleClose()">取 消</el-button>
+            <el-button size="medium" type="primary" @click="save()">{{dialogTag == 'edit' ? '修 改' : '添 加'}}</el-button>
+        </span>
+    </el-dialog>
+</div>
+<script th:src="@{/plugins/vue.min.js}"></script>
+<script th:src="@{/plugins/elementUI/element.js}"></script>
+<script th:src="@{/plugins/axios/axios.min.js}"></script>
+<script th:src="@{/plugins/axios/axios.config.js}"></script>
+<script type="text/javascript">
+    var vm = new Vue({
+        el: "#app",
+        data: {
+            moduleId: [[${id}]],
+            dialogVisible: false,
+            dialogTag: '',
+            dialogForm: {
+                menuName: '',
+                sort: null,
+                isShow: false,
+            },
+            rules: {
+                menuName: [{required: true, message: '请输入菜单名称', trigger: ['change', 'blur']}],
+            },
+            tableStyle: {
+                background: '#f8f8f9',
+                color: '#666'
+            },
+            tableData: [],
+            baseurl: '/yblog/webMenu',
+            paging: { //分页
+                page: sessionStorage.getItem('menuPage') ? sessionStorage.getItem('menuPage') : 1,
+                pageSize: 10,
+                total: 0,
+                pageChange: function (page) {
+                    vm.paging.page = page;
+                    vm.query();
+                }
+            },
+        },
+        created() {
+            this.query();
+        },
+        methods: {
+            query() {
+                let _this = this;
+                let param = {
+                    pageNum: this.paging.page,
+                    pageSize: this.paging.pageSize,
+                    moduleId: this.moduleId
+                }
+                axios.post(this.baseurl + "/list", param).then((res) => {
+                    _this.tableData = res.records;
+                    _this.paging.total = res.total;
+                });
+            },
+            indexMethod(index) { // 序号
+                return index * 1 + 1;
+            },
+            open(id) {
+                if (id) {
+                    this.dialogTag = 'edit';
+                    let _this = this;
+                    let param = {
+                        pageNum: 0,
+                        pageSize: 1,
+                        moduleId: this.moduleId,
+                        id: id
+                    }
+                    axios.post(this.baseurl + "/list", param).then((res) => {
+                        _this.dialogForm = res.records[0];
+                        _this.dialogForm.isShow = _this.dialogForm.isShow !== 0;
+                    });
+                }
+                this.dialogVisible = true;
+            },
+            goInfo(id, name) {
+                sessionStorage.setItem('menuPage', this.paging.page)
+                sessionStorage.setItem('notesName', name)
+                sessionStorage.setItem('moduleId', this.moduleId)
+                window.location.href = "/yblog/notes?id=" + id;
+            },
+            handleClose() {
+                this.dialogVisible = false;
+                this.dialogTag = '';
+            },
+            save() {//
+                this.$refs.dialogForm.validate((valid) => {
+                    if (valid) {
+                        this.$confirm('确定' + (this.dialogTag == 'edit' ? '修改' : '添加') + '此项菜单?', '提示', {
+                            confirmButtonText: '确定',
+                            cancelButtonText: '取消',
+                            type: 'warning'
+                        }).then(() => {
+                            this.submitForm();
+                        }).catch(() => {
+                            this.message('info', '取消操作');
+                        });
+                    }
+                })
+            },
+            submitForm() {  //提交表单
+                let _this = this;
+                this.dialogForm.moduleId = this.moduleId;
+                if (this.dialogTag == 'edit') { //修改菜单
+                    axios.post(this.baseurl + "/edit", this.dialogForm).then((res) => {
+                        if (res.code === 0) {
+                            _this.message('success', '修改成功!');
+                            _this.handleClose();
+                            _this.query();
+                        } else {
+                            _this.message('error', res.msg);
+                        }
+                    });
+                } else { //添加菜单
+                    axios.post(this.baseurl + "/add", this.dialogForm).then((res) => {
+                        if (res.code === 0) {
+                            _this.message('success', '添加成功!');
+                            _this.handleClose();
+                            _this.query();
+                        } else {
+                            _this.message('error', res.msg);
+                        }
+                    });
+                }
+            },
+            del(id) {
+                let _this = this;
+                let param = {id: id};
+                this.$confirm('此操作将永久删除该菜单, 是否继续?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    axios.post(this.baseurl + "/delete", param).then((res) => {
+                        if (res.code === 0) {
+                            _this.message('success', '删除成功!');
+                            _this.paging.page= _this.tableData.length === 1 ? _this.paging.page - 1 : _this.paging.page;
+                            _this.query();
+                        } else {
+                            _this.message('error', res.msg);
+                        }
+                    });
+                }).catch(() => {
+                    this.message('info', '已取消删除');
+                });
+            },
+            message(type, msg) {
+                this.$message({
+                    type: type,
+                    message: msg
+                });
+            },
+        }
+    })
+</script>
+</body>
+</html>

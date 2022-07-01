@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>菜单列表</title>
+    <link th:href="@{/plugins/elementUI/element.css}" rel="stylesheet" />
+    <link th:href="@{/plugins/style.css}" rel="stylesheet" />
+    <link th:href="@{/plugins/wangEditor/style.css}" rel="stylesheet" />
+    <style>
+        .maxTitle{
+            max-width: 450px;
+        }
+        .maxSort{
+            max-width: 300px;
+        }
+        .right-span{
+            margin-left: 10px;
+            cursor: pointer;
+            font-size: 20px;
+        }
+        .right-span:hover{color:#E6A23C;}
+        .i-down{transform: rotate(90deg);}
+        .save-btn-box{
+            width: 100%;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div id="app" v-cloak>
+    <div class="appBox">
+        <div class="body">
+            <el-breadcrumb separator-class="el-icon-arrow-right">
+                <el-breadcrumb-item><a href="/yblog/module">首页模块</a></el-breadcrumb-item>
+                <el-breadcrumb-item><a :href="'/yblog/webMenu?id=' + mid " >菜单管理</a></el-breadcrumb-item>
+                <el-breadcrumb-item><a :href="'/yblog/notes?id=' + menuid">{{name}}笔记</a></el-breadcrumb-item>
+                <el-breadcrumb-item>{{tag==='editor'?'编辑':'添加'}}{{name}}笔记</el-breadcrumb-item>
+            </el-breadcrumb>
+            <el-form ref="notesForm" :model="notesForm" :rules="rules" label-width="100px" class="mt20">
+                <el-form-item label="笔记标题：" prop="title">
+                    <el-input v-model="notesForm.title" clearable placeholder="请输入笔记标题" class="maxTitle"></el-input>
+                    <span class="right-span"><i class="el-icon-d-arrow-right i-down"></i></span>
+                </el-form-item>
+                <div v-show="isUnfold">
+                    <el-form-item label="笔记位置：" prop="menuId">
+                        <el-select v-model="moduleId" placeholder="请选择模块" @change="moduleHandle">
+                            <el-option v-for="item in moduleList" :key="item.value" :label="item.label" :value="item.value">
+                            </el-option>
+                        </el-select>
+                        <el-select v-model="notesForm.menuId" placeholder="请选择菜单">
+                            <el-option v-for="item in menuList" :key="item.value" :label="item.label" :value="item.value">
+                            </el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="笔记标签：" prop="labelId">
+                        <el-select v-model="notesForm.labelId" placeholder="请选择文章标签">
+                            <el-option
+                                    v-for="item in labelList"
+                                    :key="item.value"
+                                    :label="item.label"
+                                    :value="item.value">
+                            </el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="是否显示：" prop="isShow">
+                        <el-switch
+                                v-model="notesForm.isShow"
+                                active-color="#13ce66">
+                        </el-switch>
+                    </el-form-item>
+                    <el-form-item label="显示排序：" prop="sort">
+                        <el-input v-model="notesForm.sort" type="number" clearable placeholder="请输入显示排序，数字越小越靠前" class="maxSort"></el-input>
+                    </el-form-item>
+                </div>
+                <div id="toolbar-container"></div>
+                <div id="editor-container"></div>
+            </el-form>
+            <div class="save-btn-box">
+                <el-button type="success" plain size="small" @click="save()">保 存</el-button>
+                <el-button type="success" plain size="small" @click="gohome()">取 消</el-button>
+            </div>
+        </div>
+    </div>
+</div>
+<script th:src="@{/plugins/vue.min.js}"></script>
+<script th:src="@{/plugins/wangEditor/index.js}"></script>
+<script th:src="@{/plugins/elementUI/element.js}"></script>
+<script th:src="@{/plugins/axios/axios.min.js}"></script>
+<script th:src="@{/plugins/axios/axios.config.js}"></script>
+<script type="text/javascript">
+    var editor={};
+    var vm = new Vue({
+        el: "#app",
+        data: {
+            isUnfold:true,
+            notesForm:{
+                title:'',
+                isShow:true,
+                sort:'',
+                menuId:[[${menuid}]],
+                labelId:1,
+                content:'',
+            },
+            labelList:[],
+            menuid:[[${menuid}]],
+            id:'[[${id}]]',
+            name: sessionStorage.getItem('notesName'),
+            moduleId: Number(sessionStorage.getItem('moduleId')),
+            mid: Number(sessionStorage.getItem('moduleId')),
+            moduleList:[],
+            menuList:[],
+            rules:{
+                title:[{ required: true, message: '请输入笔记标题', trigger: ['change','blur'] }],
+                menuId:[{ required: true, message: '请选择菜单', trigger: ['change','blur'] }],
+            },
+            tag:'[[${tag}]]',
+        },
+        created: function() {
+            this.queryModuleList();
+            this.queryLabelList();
+        },
+        mounted(){
+            console.log(this.tag)
+            if(this.tag==='editor'){
+                this.queryById();
+            }else{debugger
+                this.createdE();
+            }
+        },
+        methods: {
+            queryLabelList(){   //查询标签列表
+                let _this=this;
+                let param={}
+                axios.post("/yblog/label/labelList",param).then((res) => {
+                    _this.labelList = res;
+                });
+            },
+            moduleHandle(v){
+                this.notesForm.menuId=''
+                this.queryMenuList();
+            },
+            queryModuleList(){
+                let _this=this;
+                let param={}
+                axios.post("/yblog/module/moduleList",param).then((res) => {
+                    _this.moduleList=res;
+                    _this.queryMenuList();
+                });
+            },
+            queryById(){
+                let _this=this;
+                let param={
+                    id:this.id
+                }
+                axios.post("/yblog/notes/selectYNotesById",param).then((res) => {
+                    _this.notesForm=res;
+                    _this.notesForm.isShow=Boolean(_this.notesForm.isShow)
+                    _this.createdE();
+                });
+            },
+            queryMenuList(){
+                let _this=this;
+                let param={
+                    moduleId: this.moduleId
+                }
+                axios.post("/yblog/webMenu/menuList",param).then((res) => {
+                    _this.menuList=res;
+                });
+            },
+            message(type,msg){
+                this.$message({
+                    type: type,
+                    message: msg
+                });
+            },
+            save(){
+                this.$refs.notesForm.validate((valid) => {
+                    if (valid) {
+                        this.submitForm();
+                    }
+                })
+            },
+            submitForm(){
+                let _this=this;
+                this.notesForm.content = editor.getHtml();
+                let url=this.tag==='editor'? '/yblog/notes/notesEditor' : '/yblog/notes/notesAdd';
+                axios.post(url,this.notesForm).then((res) => {
+                    if(res.code===0){
+                        _this.message('success',res.msg);
+                        setTimeout(()=>{_this.gohome()},1500)
+                    }else {
+                        _this.message('error',res.msg);
+                    }
+                });
+            },
+            gohome(){
+                window.location.href='/yblog/notes?id=' + this.menuid
+            },
+            createdE(){//创建编辑器
+                const {createEditor, createToolbar} = window.wangEditor
+                // 编辑器配置
+                const editorConfig = {MENU_CONF: {}}
+                editorConfig.placeholder = '请输入你要发表的内容…'
+
+                let that = this;
+                // 图片上传,跟vue2里边讲解里的一样,这里就大概说一下,可以看上一篇里的讲解
+                editorConfig.MENU_CONF['uploadImage'] = {
+                    customUpload(file, insertFn) {
+                        const isJPG = file.type.split('/')[0] == 'image';
+                        if (!isJPG) {
+                            that.$message.warning("请上传图片");
+                            return
+                        }
+                        let formData = new FormData();
+                        formData.append("file", file); //img是我走接口需要上传的名字,看你们接口需要什么名字
+                        const configs = {
+                            // 上传请求头
+                            headers: {
+                                'authorization': localStorage.getItem('token'),
+                            },
+                            // 上传进度
+                            onUploadProgress: progressEvent => {
+                                let percent = (progressEvent.loaded / progressEvent.total * 100 | 0);
+                            },
+                        };
+
+                        axios.post('/common/upload', formData, configs).then((res) => {
+                            if (res.code == 0) {
+                                const alt = (res.url.split("/")[res.url.split("/").length - 1]).substring(36);
+                                insertFn(res.url, alt, res.url);  // insertFn 参数1：路径； 参数2：alt值； 参数三：路径
+                                debugger
+                            } else {
+                                that.$message({
+                                    message: res.msg,
+                                    type: 'warning'
+                                });
+                            }
+                        });
+                    }
+                }
+
+                // 这里是修改工具栏的行高选项
+                editorConfig.MENU_CONF['lineHeight'] = {
+                    lineHeightList: ['1','2']
+                }
+                // 这里是修改工具栏的字体选项
+                editorConfig.MENU_CONF['fontSize'] = {
+                    fontSizeList: ['14px', '16px']
+                }
+
+                // 工具栏配置
+                const toolbarConfig = {
+                    // 这里是我要剔除的工具栏,写名字即可,用toolbarConfig.toolbarKeys()方法获取全部的工具栏名字
+                    excludeKeys: ['fullScreen',],
+                }
+                // 创建编辑器
+                editor = createEditor({
+                    selector: '#editor-container',
+                    config: editorConfig,
+                    mode: 'default', // 或 'simple' 参考下文
+                    html: this.notesForm.content,
+                })
+                // 创建工具栏
+                const toolbar = createToolbar({
+                    editor,
+                    selector: '#toolbar-container',
+                    config: toolbarConfig,
+                    mode: 'default' // 或 'simple' 参考下文
+                })
+            },
+        },
+        beforeDestroy() {
+            const editor = this.editor
+            if (editor == null) return
+            editor.destroy() // 组件销毁时，及时销毁编辑器
+        }
+    })
+</script>
+</body>
+</html>

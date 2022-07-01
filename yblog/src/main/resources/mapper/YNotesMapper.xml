@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.yblog.notes.mapper.YNotesMapper">
+    
+    <resultMap type="YNotes" id="YNotesResult">
+        <result property="id"    column="id"    />
+        <result property="title"    column="title"    />
+        <result property="menuId"    column="menu_id"    />
+        <result property="content"    column="content"    />
+        <result property="isShow"    column="is_show"    />
+        <result property="sort"    column="sort"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectYNotesVo">
+        select id, title, menu_id, content, is_show, sort, create_by, create_time, update_by, update_time from y_notes
+    </sql>
+
+    <select id="selectYNotesList" resultType="map">
+        SELECT
+        YN.id,
+        YN.title,
+        YNL.label,
+        YN.is_show AS isShow,
+        YN.sort
+        FROM
+        y_notes AS YN
+        LEFT JOIN
+        y_notes_label AS YNL ON YNL.id=YN.label_id
+        <where>
+            <if test="map.menuId != null "> AND YN.menu_id = #{map.menuId}</if>
+        </where>
+        ORDER BY
+        IF
+        ( ISNULL( YN.sort ), 1, 0 ),
+        YN.sort
+    </select>
+
+    <select id="selectYNotesListTop" resultType="map">
+        SELECT
+        YN.id,
+        YN.title,
+        YNL.label,
+        YN.is_show AS isShow,
+        YN.sort
+        FROM
+        y_notes AS YN
+        LEFT JOIN
+        y_notes_label AS YNL ON YNL.id=YN.label_id
+        ORDER BY
+        IF
+        ( ISNULL( YN.sort ), 1, 0 ),
+        YN.sort
+    </select>
+    
+    <select id="selectYNotesById" parameterType="Long" resultType="com.ruoyi.yblog.notes.domain.YNotes">
+        SELECT
+            yn.id,
+            yn.title,
+            yn.label_id AS labelId,
+            yn.is_show AS isShow,
+            yn.sort,
+            yn.menu_id AS menuId,
+            yn.content
+        FROM
+            y_notes AS yn
+        WHERE yn.id = #{id}
+    </select>
+        
+    <insert id="insertYNotes" parameterType="YNotes" useGeneratedKeys="true" keyProperty="id">
+        insert into y_notes
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="title != null and title != ''">title,</if>
+            <if test="menuId != null">menu_id,</if>
+            <if test="content != null">content,</if>
+            <if test="isShow != null">is_show,</if>
+            <if test="labelId != null">label_id,</if>
+            <if test="sort != null">sort,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="title != null and title != ''">#{title},</if>
+            <if test="menuId != null">#{menuId},</if>
+            <if test="content != null">#{content},</if>
+            <if test="isShow != null">#{isShow},</if>
+            <if test="labelId != null">#{labelId},</if>
+            <if test="sort != null">#{sort},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateYNotes" parameterType="YNotes">
+        update y_notes
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="title != null and title != ''">title = #{title},</if>
+            <if test="menuId != null">menu_id = #{menuId},</if>
+            <if test="content != null">content = #{content},</if>
+            <if test="isShow != null">is_show = #{isShow},</if>
+            <if test="labelId != null">label_id = #{labelId},</if>
+            <if test="sort != null">sort = #{sort},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteYNotesById" parameterType="Long">
+        delete from y_notes where id = #{id}
+    </delete>
+
+    <delete id="deleteYNotesByIds" parameterType="String">
+        delete from y_notes where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

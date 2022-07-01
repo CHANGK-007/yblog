@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>菜单列表</title>
+    <link th:href="@{/plugins/elementUI/element.css}" rel="stylesheet" />
+    <link th:href="@{/plugins/style.css}" rel="stylesheet" />
+    <style>
+    </style>
+</head>
+<body>
+<div id="app" v-cloak>
+    <div class="appBox">
+        <div class="body">
+            <el-breadcrumb separator-class="el-icon-arrow-right">
+                <el-breadcrumb-item><a href="/yblog/module">首页模块</a></el-breadcrumb-item>
+                <el-breadcrumb-item><a :href="'/yblog/webMenu?id=' + moduleId " >菜单管理</a></el-breadcrumb-item>
+                <el-breadcrumb-item>{{name}}笔记</el-breadcrumb-item>
+            </el-breadcrumb>
+            <div class="btn-box">
+                <el-button type="success" plain size="small" @click="add()">添加</el-button>
+            </div>
+            <el-table :data="tableData" align="center" class="mt10 mt70" :header-cell-style="tableStyle" >
+                <el-table-column type="index" :index="indexMethod" width="60" label="编号"></el-table-column>
+                <el-table-column prop="title" label="笔记标题" width="200px"></el-table-column>
+                <el-table-column prop="label" label="笔记标签" width="200px"></el-table-column>
+                <el-table-column prop="sort" label="显示排序" width="200px"></el-table-column>
+                <el-table-column prop="reading" label="阅读量" width="200px"></el-table-column>
+                <el-table-column prop="isShow" label="是否显示" width="200px">
+                    <template slot-scope="scope">
+                        <div :style="{'color':scope.row.isShow == 1 ? '' : 'red'}">
+                            {{scope.row.isShow === 1 ? '是' : '否'}}
+                        </div>
+                    </template>
+                </el-table-column>
+                <el-table-column label="操作">
+                    <template slot-scope="scope">
+                        <div class="handle-btn-box">
+                            <el-button type="info"  size="mini" @click="goInfo(scope.row.id)">详情</el-button>
+                            <el-button type="primary"  size="mini" @click="editor(scope.row.id)">修改</el-button>
+                            <el-button type="danger"  size="mini" @click="del(scope.row.id)">删除</el-button>
+                        </div>
+                    </template>
+                </el-table-column>
+            </el-table>
+            <div style="height: 2px"></div>
+            <div class="pagination">
+                <el-pagination :current-page="paging.page" :page-size="paging.pageSize"
+                               layout="total, prev, pager, next, jumper" :total="paging.total" @current-change="paging.pageChange">
+                </el-pagination>
+            </div>
+        </div>
+    </div>
+</div>
+<script th:src="@{/plugins/vue.min.js}"></script>
+<script th:src="@{/plugins/elementUI/element.js}"></script>
+<script th:src="@{/plugins/axios/axios.min.js}"></script>
+<script th:src="@{/plugins/axios/axios.config.js}"></script>
+<script type="text/javascript">
+    var vm = new Vue({
+        el: "#app",
+        data: {
+            menuid: '[[${id}]]',
+            name: sessionStorage.getItem('notesName'),
+            moduleId: sessionStorage.getItem('moduleId'),
+            tableStyle: {
+                background: '#f8f8f9',
+                color: '#666'
+            },
+            tableData:[],
+            baseurl: '/yblog/notes',
+            paging: { //分页
+                page: sessionStorage.getItem('notesPage') ? sessionStorage.getItem('notesPage') : 1,
+                pageSize: 10,
+                total: 0,
+                pageChange: function(page) {
+                    vm.paging.page = page;
+                    vm.query();
+                }
+            },
+        },
+        created: function() {
+            sessionStorage.setItem('notesPage',1);
+            this.query();
+        },
+        methods: {
+            query() {
+                let _this = this;
+                let param = {
+                    pageNum:this.paging.page,
+                    pageSize:this.paging.pageSize,
+                    menuId:this.menuid
+                }
+                axios.post(this.baseurl + "/list",param).then((res) => {
+                    _this.tableData = res.records;
+                    _this.paging.total = res.total;
+                });
+            },
+            indexMethod(index) { // 序号
+                return index * 1 + 1;
+            },
+            add(){
+                sessionStorage.setItem('notesPage',this.paging.page);
+                window.location.href=this.baseurl + "/goadd?menuid=" + this.menuid + "&tag='add'";
+            },
+            goInfo(id){
+                sessionStorage.setItem('notesPage',this.paging.page);
+                window.location.href="";
+            },
+            editor(id){
+                sessionStorage.setItem('notesPage',this.paging.page);
+                window.location.href=this.baseurl + "/goeditor?menuid=" + this.menuid + "&id=" + id + "&tag=editor";
+            },
+            del(id){
+                let _this=this;
+                let param = {id:id};
+                this.$confirm('此操作将永久删除该笔记, 是否继续?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    axios.post(this.baseurl + "/delete",param).then((res) => {
+                        if(res.code === 0){
+                            _this.message('success','删除成功!');
+                            _this.paging.page= _this.tableData.length === 1 ? _this.paging.page - 1 : _this.paging.page;
+                            _this.query();
+                        }else{
+                            _this.message('error',res.msg);
+                        }
+                    });
+                }).catch(() => {
+                    this.message('info','已取消删除');
+                });
+            },
+            message(type,msg){
+                this.$message({
+                    type: type,
+                    message: msg
+                });
+            },
+        }
+    })
+</script>
+</body>
+</html>
