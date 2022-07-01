@@ -41,21 +41,24 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         YN.sort
     </select>
 
-    <select id="selectYNotesListTop" resultType="map">
+    <select id="selectYNotesListTop" resultType="com.ruoyi.yblog.notes.domain.YNotes">
         SELECT
-        YN.id,
-        YN.title,
-        YNL.label,
-        YN.is_show AS isShow,
-        YN.sort
+            YN.id,
+            YN.title,
+            YNL.label,
+            YN.is_show AS isShow,
+            YN.sort,
+            YN.content,
+            YN.create_time AS createTime
         FROM
-        y_notes AS YN
-        LEFT JOIN
-        y_notes_label AS YNL ON YNL.id=YN.label_id
+            y_notes AS YN
+                LEFT JOIN y_notes_label AS YNL ON YNL.id = YN.label_id
+        WHERE
+            YN.is_show = 1
         ORDER BY
-        IF
-        ( ISNULL( YN.sort ), 1, 0 ),
-        YN.sort
+            IF
+                ( ISNULL( YN.sort ), 1, 0 ),
+            YN.sort
     </select>
     
     <select id="selectYNotesById" parameterType="Long" resultType="com.ruoyi.yblog.notes.domain.YNotes">
@@ -71,7 +74,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             y_notes AS yn
         WHERE yn.id = #{id}
     </select>
-        
+
     <insert id="insertYNotes" parameterType="YNotes" useGeneratedKeys="true" keyProperty="id">
         insert into y_notes
         <trim prefix="(" suffix=")" suffixOverrides=",">
